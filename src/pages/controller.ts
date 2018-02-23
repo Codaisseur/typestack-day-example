@@ -1,40 +1,38 @@
-import { JsonController, Get, Param, Put, Body, Post, HttpCode } from 'routing-controllers'
-import pagesById, { Page } from './data'
-
-type PageList = { pages: Page[] }
+import { JsonController, Get, Param, NotFoundError, Put, Body, HttpCode, Post } from 'routing-controllers'
+import Page from './entity'
 
 @JsonController()
 export default class PageController {
 
     @Get('/pages/:id')
     getPage(
-        @Param('id') id: number
-    ): Page {
-        return pagesById[id]
+    @Param('id') id: number
+    ) {
+        return Page.findOneById(id)
     }
 
     @Get('/pages')
-    allPages(): PageList {
-        return {
-            pages: Object.values(pagesById)
-        }
+    async allPages() {
+        const pages = await Page.find()
+        return { pages }
     }
 
     @Put('/pages/:id')
-    updatePage(
+    async updatePage(
         @Param('id') id: number,
-        @Body() body: Partial<Page>
-    ): Page {
-        console.log(`Incoming PUT body param:`, body)
-        return pagesById[id]
+        @Body() update: Partial<Page>
+    ) {
+        const page = await Page.findOneById(id)
+        if (!page) throw new NotFoundError('Cannot find page')
+
+        return Page.merge(page, update).save()
     }
 
     @Post('/pages')
     @HttpCode(201)
     createPage(
-        @Body() body: Page
-    ): Page {
-        console.log(`Incoming POST body param:`, body)
-        return body
+        @Body() page: Page
+    ) {
+        return page.save()
     }
 }
